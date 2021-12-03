@@ -5,7 +5,7 @@ import numpy as np
 def load_graph(node_init, dataset="fb"):
     graph = nx.Graph()
     node_dict = dict()
-    with open(dataset+"_undirected_edgelist.csv") as file:
+    with open('data/'+dataset+"_undirected_edgelist.csv") as file:
         for line in file:
             nodes = line[:-1].split(";")
             for node in nodes:
@@ -18,7 +18,7 @@ def load_graph(node_init, dataset="fb"):
 
 def load_query_results(dataset="antique_test"):
     results = dict()
-    with open(dataset+"_qrels.csv") as file:
+    with open('data/'+dataset+"_qrels.csv") as file:
         for line in file:
             line = line[:-1].split(";")
             results[line[0]] = line[1]
@@ -27,7 +27,7 @@ def load_query_results(dataset="antique_test"):
 
 def load_embeddings(dataset="antique_test", type="docs"):
     docs = dict()
-    with open(dataset+"_"+type+".csv") as file:
+    with open('data/'+dataset+"_"+type+".csv") as file:
         for line in file:
             line = line.split(";")
             docs[line[0]] = np.array(eval(line[1]))
