@@ -1,6 +1,7 @@
 from loader import *
 import utils
-from simulation import Document, ExchangedQuery, DecentralizedSimulation
+from datatypes import Document, ExchangedQuery
+from simulation import DecentralizedSimulation
 from nodes.flooding import FloodNode
 import random
 

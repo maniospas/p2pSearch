@@ -1,15 +1,18 @@
 from .ppr import PPRNode
+from datatypes import Document, ExchangedQuery
 
 
 class FloodNode(PPRNode):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.docs = dict()
-        self.queries = dict()
-        self.query_selected_neighbor = dict()
-        self.query_sent_to_neighbors = dict()
-        self.query_received_by = dict()
-        self.reselect_sender = 1
+        self.docs = dict() # filled by external code
+        self.queries = dict() # filled by external code (may be empty at the beginning)
+
+    def add_doc(self, doc: Document):
+        self.docs[doc.name] = doc
+
+    def add_query(self, query: ExchangedQuery):
+        self.queries[query.name] = query
 
     def update(self):
         personalization = 0
