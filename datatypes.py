@@ -2,6 +2,7 @@ import numpy as np
 
 INT_INF = 10000
 
+
 class Document:
     def __init__(self, name, embedding):
         self.name = name
@@ -9,6 +10,7 @@ class Document:
 
     def __repr__(self):
         return str(self.name)
+
 
 class Ranking:
 
@@ -43,6 +45,13 @@ class Ranking:
     def __str__(self):
         return "\n".join([f"{rank}. {str(item)} (score: {score:.3f})"
                           for rank, (item, score) in enumerate(self.ranking, 1)])
+
+    def __contains__(self, item):
+        return item in self.items
+
+    def __iter__(self):
+        for item, score in self.ranking:
+            yield item, score
 
     def __len__(self):
         return len(self.ranking)
@@ -87,12 +96,12 @@ class TTLQuery:
         self.capacity = capacity
         self.candidate_docs = candidate_docs or Ranking.empty(capacity)
 
+    def is_alive(self):
+        return self.ttl > 0
+
     def send(self):
-        if self.ttl == 0:
-            return None
-        else:
+        if self.ttl > 0:
             self.ttl -= 1
-            return self
 
     def receive(self, other):
         assert self.name == other.name
@@ -104,6 +113,12 @@ class TTLQuery:
         scores = [np.sum(doc.embedding * self.embedding) for doc in docs.values()]
         ranking = Ranking(docs, scores)
         self.candidate_docs = self.candidate_docs.merge(ranking)
+
+    def __str__(self):
+        return f"{self.__class__.__name__} {self.name}, ttl: {self.ttl}, docs: {self.candidate_docs}"
+
+    def __repr__(self):
+        return f"{self.__class__.__name__} {self.name}, ttl: {self.ttl}, docs: {self.candidate_docs}"
 
 if __name__ == "__main__":
     texts = ["misbehave", "magicarp", "less of you"]
