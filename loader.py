@@ -4,6 +4,7 @@ import os
 
 BASEDIR = os.path.dirname(__file__)
 
+
 def load_graph(node_init, dataset="fb"):
     graph = nx.Graph()
     node_dict = dict()

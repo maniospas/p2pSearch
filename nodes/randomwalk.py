@@ -6,13 +6,6 @@ from collections import defaultdict
 
 class Node:
 
-    @staticmethod
-    def _update_query_dict(query_dict, query):
-        if query.name in query_dict:
-            query_dict[query.name].receive(query)
-        else:
-            query_dict[query.name] = query
-
     def __init__(self, name):
         self.name = name
         self.docs = dict()
@@ -20,6 +13,19 @@ class Node:
         self.neighbors = dict()
         self.active_queries = dict()
         self.seen_queries = dict()
+
+    def _update_active_queries(self, query):
+        if query.name in self.active_queries:
+            self.active_queries[query.name].receive(query)
+            query.kill()
+        else:
+            self.active_queries[query.name] = query
+
+    def _update_seen_queries(self, query):
+        if query.name in self.seen_queries:
+            self.seen_queries[query.name].receive(query)
+        else:
+            self.seen_queries[query.name] = query
 
     def learn_neighbor(self, node, embedding=0):
         if embedding is None:
@@ -46,31 +52,44 @@ class Node:
 
     def receive(self, neighbor, queries):
         for query in queries:
-            self._update_query_dict(self.seen_queries, query)
+
+            self._update_seen_queries(query)
+
             query.check_now(self.docs)
+
             if query.is_alive():
-                self._update_query_dict(self.active_queries, query)
+                self._update_active_queries(query)
             else:
+                query.kill()
                 print(f"query {query.name} died at node {self.name}")
 
     def forward(self):
 
         to_forward = defaultdict(lambda: [])
-
-        if len(self.active_queries) == 0 or len(self.neighbors) == 0:
-            return to_forward
-
         neighbors, neighbor_embs = zip(*self.neighbors.items())
         for query in self.active_queries.values():
             neighbor_scores = [np.sum(neighbor_emb * query.embedding) for neighbor_emb in neighbor_embs]
             neighbor_forward_probs = utils.softmax(neighbor_scores)
+            if len(neighbors) == 0:
+                query.kill()
+                continue
             next_hop = np.random.choice(neighbors, p=neighbor_forward_probs)
-            query.send()
+            query.send((self, next_hop))
             to_forward[next_hop].append(query)
 
         self.active_queries.clear()
 
         return to_forward
+
+    def clear_docs(self):
+        self.docs = dict()
+
+    def clear_neighbors(self):
+        self.neighbors = dict()
+
+    def clear_queries(self):
+        self.seen_queries = dict()
+        self.active_queries = dict()
 
     def __str__(self):
         return f"{self.__class__.__name__.lower() } {self.name}"

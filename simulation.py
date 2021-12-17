@@ -1,6 +1,8 @@
 import random
-from datatypes import Document, ExchangedQuery
+from datatypes import Document, ExchangedQuery, TTLQuery
 from typing import List
+import random as rnd
+from collections import defaultdict
 
 
 class DecentralizedSimulation:
@@ -32,33 +34,52 @@ class DecentralizedSimulation:
         return time
 
 
-class SynchronousDecentralizedSimulation:
-    def __init__(self, graph):
+class RandomWalkWithAdvertisementsSimulation:
+    def __init__(self, graph, documents: List[Document], advertise_radius=0):
         self.nodes = list(graph.nodes)
         self.edges = list(graph.edges())
         self._graph = graph
+        self.documents = documents
+        self.advertise_radius = advertise_radius
 
+        self._learn_neighbors()
+        self._scatter_docs(documents)
+        self._advertise(advertise_radius)
+
+    def _learn_neighbors(self):
         for u, v in self.edges:
             u.learn_neighbor(v)
             v.learn_neighbor(u)
 
-    # def _get_neighbor_set(self, nodes):
-    #     neighbors_set = set()
-    #     for node in nodes:
-    #         neighbors_set.update(set(self._graph.neighbors(node)))
-    #     return neighbors_set
-
-    def scatter_docs(self, documents: List[Document]):
+    def _scatter_docs(self, documents: List[Document]):
         for node, doc in zip(random.choices(self.nodes, k=len(documents)), documents):
             node.add_doc(doc)
-            node.update()
 
-    def scatter_queries(self, queries):
-        query_objects = list()
-        for test_node, query in zip(random.choices(self.nodes, k=len(queries)), queries):
-            query_objects.append(query)
-            test_node.add_query(query)
-        return query_objects
+    def _advertise_node(self, init_node, radius=1):
+        for hop, edges in enumerate(self.stream_hops(init_node, radius, return_edges=True), 1):
+            print(f"node {init_node} hop {hop}")
+            for from_node, node in edges:
+                node.learn_neighbor(from_node, init_node.embedding)
+
+    def _advertise(self, radius=1):
+        for node in self.nodes:
+            if len(node.docs) > 0:
+                self._advertise_node(node, radius)
+        print(f"{self} finished advertising")
+
+    def shuffle_docs(self):
+        for node in self.nodes:
+            node.clear_docs()
+        self._scatter_docs(self.documents)
+        self._advertise(self.advertise_radius)
+
+    def change_advertise_radius(self, radius):
+        for node in self.nodes:
+            node.clear_neighbors()
+        self._advertise(radius)
+
+    def sample_nodes(self, k):
+        return rnd.sample(self.nodes, k)
 
     def stream_hops(self, init_node, max_hop=float('inf'), return_edges=False,):
         hop = 0
@@ -78,24 +99,30 @@ class SynchronousDecentralizedSimulation:
                 edges.extend([(node, neighbor) for neighbor in next_nodes_per_node])
                 next_nodes.update(next_nodes_per_node)
 
-    def _advertise(self, init_node, radius=1):
-        for hop, edges in enumerate(self.stream_hops(init_node, radius, return_edges=True), 1):
-            for from_node, node in edges:
-                node.learn_neighbor(from_node, init_node.embedding)
-
-    def advertise(self, radius=1):
+    def clear_queries(self):
         for node in self.nodes:
-            self._advertise(node, radius)
+            node.clear_queries()
 
-    def __call__(self, epochs, monitor=None):
+    def __call__(self, epochs, nodes2queries, ttl, capacity, monitor=None):
+
+        self.clear_queries()
+
+        results = []
+        for node, queries in nodes2queries.items():
+            for query in queries:
+                ttl_query = TTLQuery(query.name, query.embedding, ttl, capacity)
+                node.add_query(ttl_query)
+                results.append(ttl_query)
+
         for time in range(epochs):
-            to_forward = dict()
+            to_forward = defaultdict(lambda: [])
             for node in self.nodes:
-                to_forward.update(node.forward())
-            print(f"{time}: {to_forward}")
+                for to_node, messages in node.forward().items():
+                    to_forward[to_node].extend(messages)
+
             for to_node, messages in to_forward.items():
                 to_node.receive(node, messages)
-            if monitor is not None and not monitor():
+            if monitor is not None and not monitor(time, results):
                 break
-        return time
+        return time, results
 

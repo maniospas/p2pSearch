@@ -95,13 +95,18 @@ class TTLQuery:
         self.ttl = ttl
         self.capacity = capacity
         self.candidate_docs = candidate_docs or Ranking.empty(capacity)
+        self.history = []
 
     def is_alive(self):
         return self.ttl > 0
 
-    def send(self):
+    def send(self, edge):
         if self.ttl > 0:
             self.ttl -= 1
+        self.history.append(edge)
+
+    def kill(self):
+        self.ttl = 0
 
     def receive(self, other):
         assert self.name == other.name
@@ -120,15 +125,4 @@ class TTLQuery:
     def __repr__(self):
         return f"{self.__class__.__name__} {self.name}, ttl: {self.ttl}, docs: {self.candidate_docs}"
 
-if __name__ == "__main__":
-    texts = ["misbehave", "magicarp", "less of you"]
-    embs = np.random.randn(3, 100)
-    docs1 = [Document(text, emb) for text, emb in zip(texts, embs)]
-
-    texts = ["misbehave", "beep", "less of you", "kefte"]
-    embs = np.random.randn(4, 100)
-    docs2 = [Document(text, emb) for text, emb in zip(texts, embs)]
-
-    q = TTLQuery("happy", np.random.randn(100), 3, 1)
-    q.check_now(docs1)
 
