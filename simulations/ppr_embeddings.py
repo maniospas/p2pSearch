@@ -1,7 +1,7 @@
 from loader import *
 import utils
 from datatypes import Document, ExchangedQuery
-from simulation import DecentralizedSimulation
+from simulations.simulation import DecentralizedSimulation
 from nodes.flooding import FloodNode
 import random
 
@@ -9,6 +9,7 @@ import random
 # load data
 simulation = DecentralizedSimulation(load_graph(FloodNode))
 query_results = load_query_results()
+query_results = {query: docs[0] for query, docs in query_results.items()}
 docs = load_embeddings(type="docs")
 queries = load_embeddings(type="queries")
 test_queries = random.sample(list(query_results.keys()), 3)

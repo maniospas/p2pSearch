@@ -8,8 +8,45 @@ class Document:
         self.name = name
         self.embedding = embedding
 
+
+class ExchangedQuery:
+    def __init__(self, name, embedding, hops=0, candidate_doc=None, candidate_doc_similarity=-float('inf')):
+        self.name = name
+        self.embedding = embedding
+        self.hops = hops
+        self.hops_to_reach_doc = 0
+        self.candidate_doc = candidate_doc
+        self.candidate_doc_similarity = candidate_doc_similarity
+
+    def send(self):
+        return ExchangedQuery(self.name, self.embedding, self.hops+1, self.candidate_doc, self.candidate_doc_similarity)
+
+    def receive(self, other):
+        assert self.name == other.name
+        if other.candidate_doc_similarity > self.candidate_doc_similarity:
+            self.candidate_doc = other.candidate_doc
+            self.hops_to_reach_doc = other.hops_to_reach_doc
+            self.candidate_doc_similarity = other.candidate_doc_similarity
+
+    def check_now(self, docs):
+        for doc in docs:
+            score = np.sum(docs[doc].embedding * self.embedding)
+            if score > self.candidate_doc_similarity:
+                self.candidate_doc_similarity = score
+                self.candidate_doc = doc
+                self.hops_to_reach_doc = self.hops
+
+
+# new datatypes
+
+
+class Text:
+    def __init__(self, name, embedding):
+        self.name = name
+        self.embedding = embedding
+
     def __repr__(self):
-        return str(self.name)
+        return f"Text {self.name}"
 
 
 class Ranking:
@@ -60,34 +97,6 @@ class Ranking:
         return str(self)
 
 
-class ExchangedQuery:
-    def __init__(self, name, embedding, hops=0, candidate_doc=None, candidate_doc_similarity=-float('inf')):
-        self.name = name
-        self.embedding = embedding
-        self.hops = hops
-        self.hops_to_reach_doc = 0
-        self.candidate_doc = candidate_doc
-        self.candidate_doc_similarity = candidate_doc_similarity
-
-    def send(self):
-        return ExchangedQuery(self.name, self.embedding, self.hops+1, self.candidate_doc, self.candidate_doc_similarity)
-
-    def receive(self, other):
-        assert self.name == other.name
-        if other.candidate_doc_similarity > self.candidate_doc_similarity:
-            self.candidate_doc = other.candidate_doc
-            self.hops_to_reach_doc = other.hops_to_reach_doc
-            self.candidate_doc_similarity = other.candidate_doc_similarity
-
-    def check_now(self, docs):
-        for doc in docs:
-            score = np.sum(docs[doc].embedding * self.embedding)
-            if score > self.candidate_doc_similarity:
-                self.candidate_doc_similarity = score
-                self.candidate_doc = doc
-                self.hops_to_reach_doc = self.hops
-
-
 class TTLQuery:
     def __init__(self, name, embedding, ttl, capacity, candidate_docs=None):
         self.name = name
@@ -96,6 +105,10 @@ class TTLQuery:
         self.capacity = capacity
         self.candidate_docs = candidate_docs or Ranking.empty(capacity)
         self.history = []
+
+    @property
+    def visited_nodes(self):
+        return [edge[0] for edge in self.history]
 
     def is_alive(self):
         return self.ttl > 0
@@ -115,7 +128,7 @@ class TTLQuery:
     def check_now(self, docs):
         # if len(docs) > 0:
         #     breakpoint()
-        scores = [np.sum(doc.embedding * self.embedding) for doc in docs.values()]
+        scores = [np.sum(doc.embedding * self.embedding) for doc in docs]
         ranking = Ranking(docs, scores)
         self.candidate_docs = self.candidate_docs.merge(ranking)
 
