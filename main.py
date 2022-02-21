@@ -2,12 +2,12 @@ from loader import *
 import utils
 from datatypes import Document, ExchangedQuery
 from simulation import DecentralizedSimulation
-from nodes.flooding import FloodNode
+from nodes.base import BaseNode
 import random
 
 
 # load data
-simulation = DecentralizedSimulation(load_graph(FloodNode))
+simulation = DecentralizedSimulation(load_graph(BaseNode))
 query_results = load_query_results()
 docs = load_embeddings(type="docs")
 queries = load_embeddings(type="queries")
@@ -19,8 +19,9 @@ simulation.scatter_docs([Document(query_results[query], docs[query_results[query
 # sanity check that search is possible
 assert sum(1 for query in test_queries if utils.search(simulation.nodes, queries[query]).name == query_results[query]) == len(test_queries)
 
-print("Warming up")
-simulation(epochs=20)
+# print("Warming up")
+# simulation(epochs=20)
+
 results = simulation.scatter_queries([ExchangedQuery(query, queries[query]) for query in test_queries])
 
 def monitor():

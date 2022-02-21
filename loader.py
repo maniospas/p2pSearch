@@ -1,5 +1,6 @@
 import networkx as nx
 import numpy as np
+import os
 
 
 def load_graph(node_init, dataset="fb"):
@@ -16,19 +17,36 @@ def load_graph(node_init, dataset="fb"):
     return graph
 
 
-def load_query_results(dataset="antique_test"):
-    results = dict()
-    with open('data/'+dataset+"_qrels.csv") as file:
-        for line in file:
-            line = line[:-1].split(";")
-            results[line[0]] = line[1]
+def load_query_results(dataset="glove"):
+    filepath = os.path.join("data", dataset, "qrels.txt")
+    with open(filepath, "r", encoding="utf8") as f:
+        results = dict()
+        for line in f:
+            que_id, doc_id, _ = line.strip().split("\t")
+            results[que_id] = doc_id
     return results
 
 
-def load_embeddings(dataset="antique_test", type="docs"):
-    docs = dict()
-    with open('data/'+dataset+"_"+type+".csv") as file:
-        for line in file:
-            line = line.split(";")
-            docs[line[0]] = np.array(eval(line[1]))
-    return docs
+def load_embeddings(dataset="glove", type="docs"):
+    filepath = os.path.join("data", dataset, type+"_embs.npz")
+    many_arrays = np.load(filepath)
+    ids = many_arrays["ids"]
+    embs = many_arrays["embs"]
+    return {idx: emb for idx, emb in zip(ids, embs)}
+
+
+def load_texts(dataset="glove", type="docs"):
+    filepath = os.path.join("data", dataset, type+".txt")
+    with open(filepath, "r", encoding="utf8") as f:
+        texts = dict()
+        for line in f:
+            idx, text = line.strip().split("\t")
+            texts[idx] = text
+    return texts
+
+
+dset = "sts_benchmark"
+texts = load_texts(dset, type="queries")
+embs = load_embeddings(dset, type="other_docs")
+qrels = load_query_results(dset)
+
