@@ -6,7 +6,8 @@ import os
 def load_graph(node_init, dataset="fb"):
     graph = nx.Graph()
     node_dict = dict()
-    with open('data/'+dataset+"_undirected_edgelist.csv") as file:
+    filename = os.path.join('data', "network", dataset+"_undirected_edgelist.csv")
+    with open(filename) as file:
         for line in file:
             nodes = line[:-1].split(";")
             for node in nodes:
@@ -43,10 +44,4 @@ def load_texts(dataset="glove", type="docs"):
             idx, text = line.strip().split("\t")
             texts[idx] = text
     return texts
-
-
-dset = "sts_benchmark"
-texts = load_texts(dset, type="queries")
-embs = load_embeddings(dset, type="other_docs")
-qrels = load_query_results(dset)
 
