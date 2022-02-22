@@ -2,11 +2,12 @@ import networkx as nx
 import numpy as np
 import os
 
+from dirs import DATA_DIR
 
 def load_graph(node_init, dataset="fb"):
     graph = nx.Graph()
     node_dict = dict()
-    filename = os.path.join('data', "network", dataset+"_undirected_edgelist.csv")
+    filename = os.path.join(DATA_DIR, "network", dataset+"_undirected_edgelist.csv")
     with open(filename) as file:
         for line in file:
             nodes = line[:-1].split(";")
@@ -19,7 +20,7 @@ def load_graph(node_init, dataset="fb"):
 
 
 def load_query_results(dataset="glove"):
-    filepath = os.path.join("data", dataset, "qrels.txt")
+    filepath = os.path.join(DATA_DIR, dataset, "qrels.txt")
     with open(filepath, "r", encoding="utf8") as f:
         results = dict()
         for line in f:
@@ -29,7 +30,7 @@ def load_query_results(dataset="glove"):
 
 
 def load_embeddings(dataset="glove", type="docs"):
-    filepath = os.path.join("data", dataset, type+"_embs.npz")
+    filepath = os.path.join(DATA_DIR, dataset, type+"_embs.npz")
     many_arrays = np.load(filepath)
     ids = many_arrays["ids"]
     embs = many_arrays["embs"]
@@ -37,7 +38,7 @@ def load_embeddings(dataset="glove", type="docs"):
 
 
 def load_texts(dataset="glove", type="docs"):
-    filepath = os.path.join("data", dataset, type+".txt")
+    filepath = os.path.join(DATA_DIR, dataset, type+".txt")
     with open(filepath, "r", encoding="utf8") as f:
         texts = dict()
         for line in f:
