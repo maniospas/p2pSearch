@@ -1,5 +1,5 @@
 import random
-from datatypes import Document, ExchangedQuery
+from datatypes import Document, MessageQuery
 from typing import List
 
 
@@ -13,22 +13,29 @@ class DecentralizedSimulation:
             node.add_doc(doc)
             node.update()
 
-    def scatter_queries(self, queries: List[ExchangedQuery]):
-        query_objects = list()
-        for test_node, query in zip(random.sample(self.nodes, len(queries)), queries):
-            query_objects.append(query)
-            test_node.add_query(query)
-        return query_objects
+    def scatter_queries(self, queries: List[MessageQuery]):
+        for node, query in zip(random.sample(self.nodes, len(queries)), queries):
+            node.add_query(query)
 
-    def __call__(self, epochs, monitor=None):
+
+    def warmup(self, epochs, monitor=None):
         for time in range(epochs):
             random.shuffle(self.edges)
             for u, v in self.edges:
                 if random.random() < 0.1:
-                    v.receive(u, u.send(v))
-                    u.receive(v, v.send(u))
+                    mesg_to_v, mesg_to_u = u.send_embedding(v), v.send_embedding(u)
+                    v.receive_embedding(u, mesg_to_v)
+                    u.receive_embedding(v, mesg_to_u)
+
+            for u in self.node:
+                if u.has_queries_to_send():
+                    if random.random() < 0.8:
+                        to_send = u.send_queries()
+
+
             if monitor is not None and not monitor():
                 break
         return time
+    
 
 

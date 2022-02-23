@@ -1,33 +1,37 @@
 from loader import *
 import utils
-from datatypes import Document, ExchangedQuery
+from datatypes import Document, Query, MessageQuery
 from simulation import DecentralizedSimulation
-from nodes.base import BaseNode
+from nodes.walkers import WalkerNode
 import random
 
 
-# load data
-simulation = DecentralizedSimulation(load_graph(BaseNode))
-query_results = load_query_results()
-all_queries = load_embeddings(dataset="sts_benchmark", type="queries")
-all_docs = load_embeddings(dataset="sts_benchmark", type="docs")
-all_other_docs = load_embeddings(dataset="sts_benchmark", type="other_docs")
+ttl = 100
 
-test_queries = random.sample(list(query_results.keys()), 100)
+# load data
+simulation = DecentralizedSimulation(load_graph(WalkerNode))
+query_results = load_query_results()
+que_embs = load_embeddings(dataset="glove", type="queries")
+doc_embs = load_embeddings(dataset="glove", type="docs")
+other_doc_embs = load_embeddings(dataset="glove", type="other_docs")
+
+test_qids = random.sample(list(query_results.keys()), 100)
+queries = [Query(qid, que_embs[qid]) for qid in test_qids]
+docs = [Document(query_results[qid], doc_embs[query_results[qid]]) for qid in test_qids]
 
 # assign query result docs to nodes
-simulation.scatter_docs([Document(query_results[query], all_docs[query_results[query]]) for query in test_queries])
+simulation.scatter_docs(docs)
 
 # sanity check that search is possible
-assert sum(1 for query in test_queries if utils.search(simulation.nodes, all_queries[query]).name == query_results[query]) == len(test_queries)
+assert sum(1 for qid in test_qids if utils.search(simulation.nodes, que_embs[qid]).name == query_results[qid]) == len(test_qids)
 
 # print("Warming up")
 # simulation(epochs=20)
 
-results = simulation.scatter_queries([ExchangedQuery(query, all_queries[query]) for query in test_queries])
+simulation.scatter_queries([MessageQuery(query, ttl) for query in queries])
 
 def monitor():
-    acc = sum(1. for query in results if query.candidate_doc == query_results[query.name]) / len(results)
+    acc = sum(1. for query in queries if query.candidate_doc == query_results[query.name]) / len(queries)
     print("Accuracy", acc)
     return acc < 0.99
 
