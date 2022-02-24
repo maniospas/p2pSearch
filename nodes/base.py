@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from datatypes import Document, MessageQuery
+from collections import defaultdict
 
 
 class PPRNode:
@@ -28,6 +29,9 @@ class PPRNode:
     def send_embedding(self):
         return self.embedding / max(1, len(self.neighbors)) ** 0.5
 
+    def __repr__(self):
+        return f"Node ({self.name})"
+
 
 class DocNode(PPRNode, ABC):
 
@@ -35,29 +39,60 @@ class DocNode(PPRNode, ABC):
         super(DocNode, self).__init__(name)
         self.docs = dict()
         self.query_queue = dict()
+        self.seen_from = defaultdict(lambda : set())
 
     def add_doc(self, doc: Document):
         self.docs[doc.name] = doc
 
     def add_query(self, query: MessageQuery):
         assert query.ttl >= 0, f"{query}, ttl should be >= 0"
-        query.check_now()
+        query.check_now(self.docs)
         if query.is_alive():
             if query.name in self.query_queue:
                 self.query_queue[query.name].receive(query)
-                query.kill()
+                query.kill(self, reason=f"query merged with queued clone")
             else:
                 self.query_queue[query.name] = query
         else: # if ttl was initially 0
-            query.kill()
+            query.kill(self, reason="ttl was initialized to 0")
 
     def has_queries_to_send(self):
         return len(self.query_queue) > 0
 
-    @abstractmethod
     def send_queries(self):
-        pass
+        assert all([query.is_alive() for query in self.query_queue.values()]), "queries in query queue should have been alive"
+        to_send = defaultdict(lambda : [])
+        for query in self.query_queue.values():
+            next_hops = self.get_next_hops(query)
+            if len(next_hops) > 0:
+                clones = [query.clone() for _ in range(len(next_hops)-1)]
+                outgoing_queries = [query]
+                outgoing_queries.extend(clones)
+                for next_hop, outgoing_query in zip(next_hops, outgoing_queries):
+                    outgoing_query.send(self, next_hop)
+                    to_send[next_hop].append(outgoing_query)
+            else:
+                query.kill(self, reason="no next hops to forward")
+        self.query_queue.clear()
+        return to_send
+
+    def receive_queries(self, queries, from_node, kill_seen=False):
+        for query in queries:
+            if query.name not in self.seen_from:
+                query.check_now(self.docs)
+            elif query.name in self.seen_from and kill_seen:
+                query.kill(self, reason="query has already been seen")
+
+            if query.is_alive():
+                if query.name in self.query_queue:
+                    self.query_queue[query.name].receive(query)
+                    query.kill(self, reason=f"query merged at node {self.name}")
+                else:
+                    self.query_queue[query.name] = query
+            else:
+                query.kill(self, reason="query reached its ttl limit")
+            self.seen_from[query.name].add(from_node)
 
     @abstractmethod
-    def receive_queries(self, queries, from_neighbor):
+    def get_next_hops(self, query):
         pass

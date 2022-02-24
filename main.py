@@ -3,10 +3,11 @@ import utils
 from datatypes import Document, Query, MessageQuery
 from simulation import DecentralizedSimulation
 from nodes.walkers import WalkerNode
+from nodes.flooders import FlooderNode
 import random
 
 
-ttl = 100
+ttl = 2
 
 # load data
 simulation = DecentralizedSimulation(load_graph(WalkerNode))
@@ -25,15 +26,17 @@ simulation.scatter_docs(docs)
 # sanity check that search is possible
 assert sum(1 for qid in test_qids if utils.search(simulation.nodes, que_embs[qid]).name == query_results[qid]) == len(test_qids)
 
-# print("Warming up")
-# simulation(epochs=20)
+print("Warming up")
+simulation(epochs=20)
 
 simulation.scatter_queries([MessageQuery(query, ttl) for query in queries])
 
 def monitor():
     acc = sum(1. for query in queries if query.candidate_doc == query_results[query.name]) / len(queries)
+
     print("Accuracy", acc)
     return acc < 0.99
 
-time = simulation(epochs=1000, monitor=monitor)
+print("begin simulation")
+time = simulation(epochs=100, monitor=monitor)
 print("Discovered everything at time", time)

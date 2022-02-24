@@ -17,21 +17,21 @@ class DecentralizedSimulation:
         for node, query in zip(random.sample(self.nodes, len(queries)), queries):
             node.add_query(query)
 
-
-    def warmup(self, epochs, monitor=None):
+    def __call__(self, epochs, monitor=None):
         for time in range(epochs):
             random.shuffle(self.edges)
             for u, v in self.edges:
                 if random.random() < 0.1:
-                    mesg_to_v, mesg_to_u = u.send_embedding(v), v.send_embedding(u)
+                    mesg_to_v, mesg_to_u = u.send_embedding(), v.send_embedding()
                     v.receive_embedding(u, mesg_to_v)
                     u.receive_embedding(v, mesg_to_u)
 
-            for u in self.node:
-                if u.has_queries_to_send():
-                    if random.random() < 0.8:
-                        to_send = u.send_queries()
-
+            random.shuffle(self.nodes)
+            for u in self.nodes:
+                if u.has_queries_to_send() and random.random() < 0.8:
+                    to_send = u.send_queries()
+                    for v, queries in to_send.items():
+                        v.receive_queries(queries, u)
 
             if monitor is not None and not monitor():
                 break
