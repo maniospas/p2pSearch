@@ -17,11 +17,11 @@ class HardSumEmbeddingNode(WalkerNode):
         if len(neighbors) == 0:
             return []
 
-        filtered_neighbors = self.filter_seen_from(neighbors)
+        filtered_neighbors = self.filter_seen_from(neighbors, query, as_type=list)
         if len(filtered_neighbors) > 0:
             neighbors = filtered_neighbors
 
-        filtered_neighbors = self.filter_sent_to(neighbors)
+        filtered_neighbors = self.filter_sent_to(neighbors, query, as_type=list)
         if len(filtered_neighbors) > 0:
             neighbors = filtered_neighbors
 
@@ -43,11 +43,11 @@ class SoftSumEmbeddingNode(WalkerNode):
         if len(neighbors) == 0:
             return []
 
-        filtered_neighbors = self.filter_seen_from(neighbors)
+        filtered_neighbors = self.filter_seen_from(neighbors, query)
         if len(filtered_neighbors) > 0:
             neighbors = filtered_neighbors
 
-        filtered_neighbors = self.filter_sent_to(neighbors)
+        filtered_neighbors = self.filter_sent_to(neighbors, query)
         if len(filtered_neighbors) > 0:
             neighbors = filtered_neighbors
 

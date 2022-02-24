@@ -11,7 +11,9 @@ class FlooderNode(DocNode):
         super().receive_queries(queries, from_node, kill_seen=True)
 
     def get_next_hops(self, query):
-        if len(self.neighbors) == 0:
-            return [] # pathologic case
-        next_hops = set(self.neighbors).difference(self.seen_from[query.name])
-        return list(next_hops)
+        neighbors = list(self.neighbors)
+        if len(neighbors) == 0:
+            return []
+
+        next_hops = self.filter_seen_from(neighbors, query, as_type=list)
+        return next_hops

@@ -14,15 +14,15 @@ class WalkerNode(DocNode):
     def receive_queries(self, queries, from_node):
         super().receive_queries(queries, from_node, kill_seen=False)
 
-    # TODO can remove nodes where we have already sent the message or see message history
     def get_next_hops(self, query):
-        if len(self.neighbors) == 0:
-            return [] # pathologic case
+        neighbors = list(self.neighbors)
+        if len(neighbors) == 0:
+            return []
 
-        candidates = self.filter_seen_from(self.neighbors)
+        candidates = self.filter_seen_from(neighbors, query, as_type=list)
         if len(candidates) > 0:
             return random.sample(candidates, k=1)
         else:
-            return random.sample(list(self.neighbors), k=1)
+            return random.sample(neighbors, k=1)
 
 

@@ -56,3 +56,19 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+
+# Other
+data/antique/
+!data/antique/__init__.py
+
+data/glove/
+!data/glove/__init__.py
+!data/glove/generate_script.py
+
+data/network/
+!data/network/__init__.py
+
+data/sts_benchmark/
+!data/network/__init__.py
+
+

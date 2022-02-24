@@ -64,8 +64,3 @@ def get_filepath(dataset):
         download(dataset, filepath)
     return filepath
 
-
-
-filepath = get_filepath("erdos")
-with open(filepath) as f:
-    print(next(iter(f)).split("\t"))

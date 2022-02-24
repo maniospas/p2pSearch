@@ -28,6 +28,13 @@ class Query:
                 candidate_doc = q.candidate_doc
         return candidate_doc
 
+    @property
+    def visited_tree(self):
+        tree = set()
+        for message in self.messages:
+            tree.update(set(message.visited_edges))
+        return list(tree)
+
     def __repr__(self):
         return f"{self.__class__.__name__} (\'{self.name}\')"
 
@@ -46,7 +53,7 @@ class MessageQuery:
         self.query.register(self)
 
     @property
-    def visised_nodes(self):
+    def visited_nodes(self):
         if len(self.visited_edges) == 0:
             return []
         nodes = [edge[0] for edge in self.visited_edges]

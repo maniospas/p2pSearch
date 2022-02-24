@@ -30,7 +30,7 @@ class PPRNode:
         return self.embedding / max(1, len(self.neighbors)) ** 0.5
 
     def __repr__(self):
-        return f"Node ({self.name})"
+        return f"Node({self.name})"
 
 
 class DocNode(PPRNode, ABC):
@@ -57,13 +57,11 @@ class DocNode(PPRNode, ABC):
         else: # if ttl was initially 0
             query.kill(self, reason="ttl was initialized to 0")
 
-    def filter_seen_from(self, nodes):
-        as_type = type(nodes)
-        return as_type(set(nodes).difference(self.seen_from))
+    def filter_seen_from(self, nodes, query, as_type=list):
+        return as_type(set(nodes).difference(self.seen_from[query.name]))
 
-    def filter_sent_to(self, nodes):
-        as_type = type(nodes)
-        return as_type(set(nodes).difference(self.sent_to))
+    def filter_sent_to(self, nodes, query, as_type=list):
+        return as_type(set(nodes).difference(self.sent_to[query.name]))
 
     def has_queries_to_send(self):
         return len(self.query_queue) > 0
@@ -79,7 +77,7 @@ class DocNode(PPRNode, ABC):
                 outgoing_queries.extend(clones)
                 for next_hop, outgoing_query in zip(next_hops, outgoing_queries):
                     outgoing_query.send(self, next_hop)
-                    self.sent_to[outgoing_query].add(next_hop)
+                    self.sent_to[outgoing_query.name].add(next_hop)
                     to_send[next_hop].append(outgoing_query)
             else:
                 query.kill(self, reason="no next hops to forward")
