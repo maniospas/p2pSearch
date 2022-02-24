@@ -28,7 +28,7 @@ doc_words = set()
 qrels = {}
 for word in words:
     similar_word, score = model.most_similar(word, topn=1)[0]
-    if score > 0.6 and similar_word not in que_words:
+    if score > 0.6 and word not in doc_words and similar_word not in que_words:
         que_words.add(word)
         doc_words.add(similar_word) # some queries may be similar to the same doc
         qrels[word] = similar_word
@@ -55,7 +55,7 @@ dids = np.concatenate([docids, otherids])
 dvecs = np.row_stack([docvecs, othervecs])
 scores = qvecs @ dvecs.transpose()
 correctdocs = np.argmax(scores, axis=1)
-validation_qrels = {qids[qindex]: dids[dindex] for qindex, dindex  in enumerate(correctdocs)}
+validation_qrels = {qids[qindex]: dids[dindex] for qindex, dindex in enumerate(correctdocs)}
 
 n_correct = np.sum([qrels[qid] == validation_qrels[qid] for qid in qids])
 print(f"--> {n_correct}/{len(qrels)} validated")
