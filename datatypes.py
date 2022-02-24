@@ -31,6 +31,7 @@ class Query:
     def __repr__(self):
         return f"{self.__class__.__name__} (\'{self.name}\')"
 
+
 class MessageQuery:
     def __init__(self, query, ttl):
         self.query = query
@@ -39,7 +40,7 @@ class MessageQuery:
         self.hops_to_reach_doc = 0
         self.candidate_doc = None
         self.candidate_doc_similarity = -float('inf')
-        # self.history = []
+        self.history = []
 
         # notify original query so that self can be monitored
         self.query.register(self)
@@ -55,8 +56,9 @@ class MessageQuery:
     def is_alive(self):
         return self.hops < self.ttl
 
-    def kill(self):
-        pass # TODO notify query
+    def kill(self, at_node, reason=""):
+        print(f"Query {self.query.name} died at node {at_node.name} because {reason}")
+         # TODO notify query
 
     def clone(self):
         copy = MessageQuery(self.query, self.ttl)
@@ -66,9 +68,9 @@ class MessageQuery:
         copy.candidate_doc_similarity = self.candidate_doc_similarity
         return copy
 
-    def send(self):
+    def send(self, from_node, to_node):
         self.hops += 1
-        # self.history.append((from_node, to_node))
+        self.history.append((from_node.name, to_node.name))
         return self
 
     def receive(self, other):
