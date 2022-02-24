@@ -3,11 +3,14 @@ import numpy as np
 import os
 
 from dirs import DATA_DIR
+from data.network import get_network_file
+
 
 def load_graph(node_init, dataset="fb"):
     graph = nx.Graph()
     node_dict = dict()
-    filename = os.path.join(DATA_DIR, "network", dataset+"_undirected_edgelist.csv")
+    filename = get_network_file(dataset)
+    # filename = os.path.join(DATA_DIR, "network", dataset+"_undirected_edgelist.csv")
     with open(filename) as file:
         for line in file:
             nodes = line[:-1].split(";")

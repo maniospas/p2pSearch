@@ -40,6 +40,7 @@ class DocNode(PPRNode, ABC):
         self.docs = dict()
         self.query_queue = dict()
         self.seen_from = defaultdict(lambda : set())
+        self.sent_to = defaultdict(lambda : set())
 
     def add_doc(self, doc: Document):
         self.docs[doc.name] = doc
@@ -56,6 +57,14 @@ class DocNode(PPRNode, ABC):
         else: # if ttl was initially 0
             query.kill(self, reason="ttl was initialized to 0")
 
+    def filter_seen_from(self, nodes):
+        as_type = type(nodes)
+        return as_type(set(nodes).difference(self.seen_from))
+
+    def filter_sent_to(self, nodes):
+        as_type = type(nodes)
+        return as_type(set(nodes).difference(self.sent_to))
+
     def has_queries_to_send(self):
         return len(self.query_queue) > 0
 
@@ -70,6 +79,7 @@ class DocNode(PPRNode, ABC):
                 outgoing_queries.extend(clones)
                 for next_hop, outgoing_query in zip(next_hops, outgoing_queries):
                     outgoing_query.send(self, next_hop)
+                    self.sent_to[outgoing_query].add(next_hop)
                     to_send[next_hop].append(outgoing_query)
             else:
                 query.kill(self, reason="no next hops to forward")
@@ -96,3 +106,4 @@ class DocNode(PPRNode, ABC):
     @abstractmethod
     def get_next_hops(self, query):
         pass
+

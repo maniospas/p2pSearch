@@ -14,15 +14,15 @@ class Query:
     def __init__(self, name, embedding):
         self.name = name
         self.embedding = embedding
-        self.realizations = []
+        self.messages = []
 
-    def register(self, realization):
-        self.realizations.append(realization)
+    def register(self, message):
+        self.messages.append(message)
 
     @property
     def candidate_doc(self):
         candidate_doc, max_similarity = None, -float('inf')
-        for q in self.realizations:
+        for q in self.messages:
             if q.candidate_doc_similarity > max_similarity:
                 max_similarity = q.candidate_doc_similarity
                 candidate_doc = q.candidate_doc
@@ -40,10 +40,18 @@ class MessageQuery:
         self.hops_to_reach_doc = 0
         self.candidate_doc = None
         self.candidate_doc_similarity = -float('inf')
-        self.history = []
+        self.visited_edges = []
 
         # notify original query so that self can be monitored
         self.query.register(self)
+
+    @property
+    def visised_nodes(self):
+        if len(self.visited_edges) == 0:
+            return []
+        nodes = [edge[0] for edge in self.visited_edges]
+        nodes.append(self.visited_edges[-1][1])
+        return nodes
 
     @property
     def name(self):
@@ -70,7 +78,7 @@ class MessageQuery:
 
     def send(self, from_node, to_node):
         self.hops += 1
-        self.history.append((from_node.name, to_node.name))
+        self.visited_edges.append((from_node.name, to_node.name))
         return self
 
     def receive(self, other):

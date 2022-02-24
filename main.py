@@ -2,21 +2,21 @@ from loader import *
 import utils
 from datatypes import Document, Query, MessageQuery
 from simulation import DecentralizedSimulation
-from nodes.walkers import WalkerNode
-from nodes.flooders import FlooderNode
+from nodes import *
+
 import random
 
 
-ttl = 2
+ttl = 5
 
 # load data
-simulation = DecentralizedSimulation(load_graph(WalkerNode))
+simulation = DecentralizedSimulation(load_graph(HardSumEmbeddingNode))
 query_results = load_query_results()
 que_embs = load_embeddings(dataset="glove", type="queries")
 doc_embs = load_embeddings(dataset="glove", type="docs")
 other_doc_embs = load_embeddings(dataset="glove", type="other_docs")
 
-test_qids = random.sample(list(query_results.keys()), 100)
+test_qids = random.sample(list(query_results.keys()), 1)
 queries = [Query(qid, que_embs[qid]) for qid in test_qids]
 docs = [Document(query_results[qid], doc_embs[query_results[qid]]) for qid in test_qids]
 
@@ -38,5 +38,5 @@ def monitor():
     return acc < 0.99
 
 print("begin simulation")
-time = simulation(epochs=100, monitor=monitor)
+time = simulation(epochs=20, monitor=monitor)
 print("Discovered everything at time", time)

@@ -28,7 +28,7 @@ class DecentralizedSimulation:
 
             random.shuffle(self.nodes)
             for u in self.nodes:
-                if u.has_queries_to_send() and random.random() < 0.8:
+                if u.has_queries_to_send() and random.random() < 0.4:
                     to_send = u.send_queries()
                     for v, queries in to_send.items():
                         v.receive_queries(queries, u)
