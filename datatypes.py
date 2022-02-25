@@ -29,6 +29,15 @@ class Query:
         return candidate_doc
 
     @property
+    def hops_to_reach_candidate_doc(self):
+        candidate_hops, max_similarity = None, -float('inf')
+        for q in self.messages:
+            if q.candidate_doc_similarity > max_similarity:
+                max_similarity = q.candidate_doc_similarity
+                candidate_hops = q.hops_to_reach_doc
+        return candidate_hops
+
+    @property
     def visited_tree(self):
         tree = set()
         for message in self.messages:
@@ -40,7 +49,17 @@ class Query:
 
 
 class MessageQuery:
-    def __init__(self, query, ttl):
+
+    counter = 0
+
+    def __init__(self, query, ttl, name=None):
+        if name is None:
+            name = f"qm{self.__class__.counter}({query.name})"
+            self.__class__.counter += 1
+        self.name = name
+        # refers to all messages cloned from the same initial message query
+        # messages added to different nodes will have diffrent message_names EVEN if they point to the same query obj
+
         self.query = query
         self.ttl = ttl
         self.hops = 0
@@ -61,7 +80,7 @@ class MessageQuery:
         return nodes
 
     @property
-    def name(self):
+    def query_name(self):
         return self.query.name
 
     @property
@@ -76,7 +95,7 @@ class MessageQuery:
          # TODO notify query
 
     def clone(self):
-        copy = MessageQuery(self.query, self.ttl)
+        copy = MessageQuery(self.query, self.ttl, name=self.name)
         copy.hops = self.hops
         copy.hops_to_reach_doc = self.hops_to_reach_doc
         copy.candidate_doc = self.candidate_doc

@@ -17,11 +17,15 @@ class HardSumEmbeddingNode(WalkerNode):
         if len(neighbors) == 0:
             return []
 
-        filtered_neighbors = self.filter_seen_from(neighbors, query, as_type=list)
-        if len(filtered_neighbors) > 0:
-            neighbors = filtered_neighbors
+        # filtered_neighbors = self.filter_seen_from(neighbors, query, as_type=list)
+        # if len(filtered_neighbors) > 0:
+        #     neighbors = filtered_neighbors
+        #
+        # filtered_neighbors = self.filter_sent_to(neighbors, query, as_type=list)
+        # if len(filtered_neighbors) > 0:
+        #     neighbors = filtered_neighbors
 
-        filtered_neighbors = self.filter_sent_to(neighbors, query, as_type=list)
+        filtered_neighbors = self.filter_query_history(neighbors, query, as_type=list)
         if len(filtered_neighbors) > 0:
             neighbors = filtered_neighbors
 
@@ -53,5 +57,6 @@ class SoftSumEmbeddingNode(WalkerNode):
 
         neighbor_embeddings = [self.neighbors[neighbor] for neighbor in neighbors]
         scores = np.array([np.sum(query.embedding * neighbor_embedding) for neighbor_embedding in neighbor_embeddings])
-        idx = np.random.choice(neighbors, p=softmax(scores))
+        idx = np.random.choice(np.argsort(-scores)[:3]) # choose randomly from top scored documents
+
         return [neighbors[idx]]

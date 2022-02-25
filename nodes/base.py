@@ -63,6 +63,13 @@ class DocNode(PPRNode, ABC):
     def filter_sent_to(self, nodes, query, as_type=list):
         return as_type(set(nodes).difference(self.sent_to[query.name]))
 
+    def filter_query_history(self, nodes, query, as_type=list):
+        nodes = {node.name:node for node in nodes}
+        for visited_node_name in query.visited_nodes:
+            if visited_node_name in nodes:
+                nodes.pop(visited_node_name)
+        return as_type(nodes.values())
+
     def has_queries_to_send(self):
         return len(self.query_queue) > 0
 

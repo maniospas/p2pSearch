@@ -8,13 +8,16 @@ class DecentralizedSimulation:
         self.nodes = list(graph.nodes)
         self.edges = list(graph.edges())
 
+    def sample_nodes(self, k):
+        return random.choices(self.nodes, k=k)
+
     def scatter_docs(self, documents: List[Document]):
-        for node, doc in zip(random.sample(self.nodes, len(documents)), documents):
+        for node, doc in zip(random.choices(self.nodes, k=len(documents)), documents):
             node.add_doc(doc)
             node.update()
 
     def scatter_queries(self, queries: List[MessageQuery]):
-        for node, query in zip(random.sample(self.nodes, len(queries)), queries):
+        for node, query in zip(random.choices(self.nodes, k=len(queries)), queries):
             node.add_query(query)
 
     def __call__(self, epochs, monitor=None):
@@ -27,11 +30,13 @@ class DecentralizedSimulation:
                     u.receive_embedding(v, mesg_to_u)
 
             random.shuffle(self.nodes)
+            outgoing = {}
             for u in self.nodes:
-                if u.has_queries_to_send() and random.random() < 0.4:
-                    to_send = u.send_queries()
-                    for v, queries in to_send.items():
-                        v.receive_queries(queries, u)
+                if u.has_queries_to_send() and random.random() < 0.8:
+                    outgoing[u] = u.send_queries()
+            for u, to_send in outgoing.items(): # TODO does it matter if synchronous?
+                for v, queries in to_send.items():
+                    v.receive_queries(queries, u)
 
             if monitor is not None and not monitor():
                 break
