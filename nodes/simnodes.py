@@ -1,16 +1,15 @@
 from nodes import WalkerNode
-from utils import softmax
 
 import numpy as np
 
 
 class HardSumEmbeddingNode(WalkerNode):
 
-    def update(self):
+    def __init__(self, name):
+        super().__init__(name)
 
-        personalization = np.sum(doc.embedding for doc in self.docs.values())
-        self.set_personalization(personalization)
-        super().update()
+    def get_personalization(self):
+        return np.sum(doc.embedding for doc in self.docs.values())
 
     def get_next_hops(self, query):
         neighbors = list(self.neighbors)
@@ -37,10 +36,8 @@ class HardSumEmbeddingNode(WalkerNode):
 
 class SoftSumEmbeddingNode(WalkerNode):
 
-    def update(self):
-        personalization = np.sum(doc.embedding for doc in self.docs.values())
-        self.set_personalization(personalization)
-        super().update()
+    def get_personalization(self):
+        return np.sum(doc.embedding for doc in self.docs.values())
 
     def get_next_hops(self, query):
         neighbors = list(self.neighbors)
@@ -57,6 +54,6 @@ class SoftSumEmbeddingNode(WalkerNode):
 
         neighbor_embeddings = [self.neighbors[neighbor] for neighbor in neighbors]
         scores = np.array([np.sum(query.embedding * neighbor_embedding) for neighbor_embedding in neighbor_embeddings])
-        idx = np.random.choice(np.argsort(-scores)[:3]) # choose randomly from top scored documents
+        idx = np.random.choice(np.argsort(-scores)[:3])  # choose randomly from top scored documents
 
         return [neighbors[idx]]

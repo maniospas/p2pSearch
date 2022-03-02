@@ -14,7 +14,6 @@ class DecentralizedSimulation:
     def scatter_docs(self, documents: List[Document]):
         for node, doc in zip(random.choices(self.nodes, k=len(documents)), documents):
             node.add_doc(doc)
-            node.update()
 
     def scatter_queries(self, queries: List[MessageQuery]):
         for node, query in zip(random.choices(self.nodes, k=len(queries)), queries):

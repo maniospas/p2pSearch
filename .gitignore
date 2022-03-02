@@ -58,6 +58,7 @@ wheels/
 *.egg
 
 # Other
+
 data/ir/antique/
 !data/ir/antique/__init__.py
 

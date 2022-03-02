@@ -25,10 +25,10 @@ def test_print_network(edges, queries, target_nodes):
 
 
 random.seed(10)
-ttl = 5
+ttl = 20
 
 # load data
-simulation = DecentralizedSimulation(load_graph(HardSumEmbeddingNode, "erdos"))
+simulation = DecentralizedSimulation(load_graph(HardSumEmbeddingNode, "fb"))
 query_results = load_query_results()
 que_embs = load_embeddings(dataset="glove", type="queries")
 doc_embs = load_embeddings(dataset="glove", type="docs")

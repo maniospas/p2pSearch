@@ -1,8 +1,7 @@
-from nodes.base import DocNode
-from collections import defaultdict
+from nodes.base import Node
 
 
-class FlooderNode(DocNode):
+class FlooderNode(Node):
 
     def __init__(self, name):
         super().__init__(name)
@@ -17,3 +16,6 @@ class FlooderNode(DocNode):
 
         next_hops = self.filter_seen_from(neighbors, query, as_type=list)
         return next_hops
+
+    def get_personalization(self):
+        return None  # of no importance to flooder

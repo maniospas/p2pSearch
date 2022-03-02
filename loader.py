@@ -54,8 +54,3 @@ def load_texts(dataset="glove", type="docs"):
             texts[idx] = text
     return texts
 
-
-from nodes.base import PPRNode
-
-# texts = load_texts("sts_benchmark", type="queries")
-embs = load_texts("glove", type="other")

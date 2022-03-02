@@ -1,15 +1,8 @@
-from nodes.base import DocNode
-from collections import defaultdict
-from datatypes import Document, MessageQuery
-
+from nodes.base import Node
 import random
-import numpy as np
 
 
-class WalkerNode(DocNode):
-
-    def __init__(self, name):
-        super().__init__(name)
+class WalkerNode(Node):
 
     def receive_queries(self, queries, from_node):
         super().receive_queries(queries, from_node, kill_seen=False)

@@ -9,7 +9,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-
 def calc_accuracy_per_ttl(queries):
     assert len(queries) > 0
     acc = np.zeros((len(queries), queries[0].messages[0].ttl))
@@ -17,6 +16,7 @@ def calc_accuracy_per_ttl(queries):
         if query.candidate_doc == query_results[query.name]:
             acc[i, query.hops_to_reach_candidate_doc:] = 1
     return np.mean(acc, axis=0)
+
 
 def same_query_different_origins_simulation(graph_name, qid, gold_doc, n_docs, que_embs, other_doc_embs, result_queue):
     # create simulation data
