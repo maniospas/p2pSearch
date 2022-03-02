@@ -58,17 +58,20 @@ wheels/
 *.egg
 
 # Other
-data/antique/
-!data/antique/__init__.py
+data/ir/antique/
+!data/ir/antique/__init__.py
 
-data/glove/
-!data/glove/__init__.py
-!data/glove/generate_script.py
+data/ir/glove/
+!data/ir/glove/__init__.py
+!data/ir/glove/generate_script.py
 
 data/network/
 !data/network/__init__.py
+!data/ir/glove/generate_script.py
 
-data/sts_benchmark/
+data/ir/sts_benchmark/
+!data/ir/sts_benchmark/__init__.py
+!data/ir/sts_benchmark/generate_script.py
+
 !data/network/__init__.py
-
 

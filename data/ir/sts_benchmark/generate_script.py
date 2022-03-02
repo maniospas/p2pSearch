@@ -9,23 +9,24 @@ import random
 from simcse import SimCSE
 from io import BytesIO
 
+
 def write_texts(name, ids, texts, delimiter="\t"):
     filepath = os.path.join(DIRNAME, name+".txt")
     with open(filepath, "w", encoding="utf8") as f:
         for id_, text in zip(ids, texts):
             f.write(f"{id_}{delimiter}{text.replace(delimiter, '')}\n")
 
+
 def write_arrays(name, ids, embs):
     filepath = os.path.join(DIRNAME, name)
     np.savez(filepath, ids=np.array(ids), embs=np.array(embs))
+
 
 def write_qrels(qrels, delimiter="\t"):
     filepath = os.path.join(DIRNAME, "qrels.txt")
     with open(filepath, "w", encoding="utf8") as f:
         for que_id, doc_id in qrels.items():
             f.write(f"{que_id}{delimiter}{doc_id}{delimiter}1\n")
-
-DIRNAME = os.path.dirname(__file__)
 
 argparser = argparse.ArgumentParser()
 argparser.add_argument("-m", "--modelname",
@@ -34,10 +35,18 @@ argparser.add_argument("-m", "--modelname",
 argparser.add_argument("-q", "--numberofqueries",
                        help="number of extracted queries",
                        default="1000")
+argparser.add_argument("-p", "--path",
+                       help="download path",
+                       default=os.getcwd())
 args = vars(argparser.parse_args())
 model_name = args["modelname"]
 nq = int(args['numberofqueries'])
+DIRNAME = args["path"]
 
+
+import sys
+print(sys.argv)
+print(args)
 # download raw data
 
 raw_path = os.path.join(DIRNAME, "raw")
@@ -87,7 +96,6 @@ else:
 
     np.save(embeddings_path, embs)
 
-
 # extract docs and queries from sentences
 print("extracting docs and queries")
 
@@ -106,7 +114,6 @@ doc_counter = 0
 que_counter = 0
 labels = []
 for idx in range(len(sentences)):
-    print(idx)
     if idx in que_idxs:
         labels.append(f"que{que_counter}")
         que_counter += 1

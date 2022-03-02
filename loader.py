@@ -1,16 +1,16 @@
-import networkx as nx
-import numpy as np
 import os
-
-from dirs import DATA_DIR
-import data.network
+import numpy as np
+import networkx as nx
+from data import network, ir
 
 
 def load_graph(node_init, dataset="fb"):
     graph = nx.Graph()
     node_dict = dict()
-    filename = data.network.get_filepath(dataset)
-    with open(filename) as file:
+    filepath = network.get_edgelist_path(dataset)
+    if not os.path.exists(filepath):
+        network.download(dataset, filepath)
+    with open(filepath) as file:
         for line in file:
             nodes = line[:-1].split(";")
             for node in nodes:
@@ -22,7 +22,9 @@ def load_graph(node_init, dataset="fb"):
 
 
 def load_query_results(dataset="glove"):
-    filepath = os.path.join(DATA_DIR, dataset, "qrels.txt")
+    filepath = ir.get_qrels_path(dataset)
+    if not os.path.exists(filepath):
+        ir.download(dataset)
     with open(filepath, "r", encoding="utf8") as f:
         results = dict()
         for line in f:
@@ -32,7 +34,9 @@ def load_query_results(dataset="glove"):
 
 
 def load_embeddings(dataset="glove", type="docs"):
-    filepath = os.path.join(DATA_DIR, dataset, type+"_embs.npz")
+    filepath = ir.get_embeddings_path(dataset, type)
+    if not os.path.exists(filepath):
+        ir.download(dataset)
     many_arrays = np.load(filepath)
     ids = many_arrays["ids"]
     embs = many_arrays["embs"]
@@ -40,7 +44,9 @@ def load_embeddings(dataset="glove", type="docs"):
 
 
 def load_texts(dataset="glove", type="docs"):
-    filepath = os.path.join(DATA_DIR, dataset, type+".txt")
+    filepath = ir.get_texts_path(dataset, type)
+    if not os.path.exists(filepath):
+        ir.download(dataset)
     with open(filepath, "r", encoding="utf8") as f:
         texts = dict()
         for line in f:
@@ -48,3 +54,8 @@ def load_texts(dataset="glove", type="docs"):
             texts[idx] = text
     return texts
 
+
+from nodes.base import PPRNode
+
+# texts = load_texts("sts_benchmark", type="queries")
+embs = load_texts("glove", type="other")

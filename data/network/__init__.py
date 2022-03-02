@@ -3,17 +3,16 @@ import gzip
 import os
 import networkx as nx
 
-from dirs import DATA_DIR
-
 METADATA = {
     "gnutella": {"url": "https://snap.stanford.edu/data/p2p-Gnutella31.txt.gz", "delimiter": "\t"},
     "fb": {"url": "https://snap.stanford.edu/data/facebook_combined.txt.gz", "delimiter": " "},
     "internet": {"url": "https://snap.stanford.edu/data/as20000102.txt.gz", "delimiter": "\t"},
     "toy_erdos": {"n": 50, "p": 0.2},
-    "toy_watts_strogatz": {"n": 50, "k":3, "p": 0.2},
+    "toy_watts_strogatz": {"n": 50, "k" :3, "p": 0.2},
 }
 
 COMMON_DELIMITER = ";"
+DATA_DIR = os.path.dirname(__file__)
 
 
 def download(dataset, filepath):
@@ -63,13 +62,10 @@ def download(dataset, filepath):
         raise Exception(f"unknown dataset \'{dataset}\', known datasets: {list(METADATA)}")
 
 
-def get_filepath(dataset):
+def get_edgelist_path(dataset):
     network_dir = os.path.join(DATA_DIR, "network")
     if not os.path.exists(network_dir):
         os.mkdir(network_dir)
+    return os.path.join(network_dir, f"{dataset}_edgelist.csv")
 
-    filepath = os.path.join(network_dir, f"{dataset}_edgelist.csv")
-    if not os.path.exists(filepath):
-        download(dataset, filepath)
-    return filepath
 

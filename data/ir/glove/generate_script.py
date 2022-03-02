@@ -1,4 +1,4 @@
-#import argparse
+import argparse
 import os
 import numpy as np
 import random as rand
@@ -7,6 +7,7 @@ import gensim.downloader as api
 
 def normalize(arr, axis=1):
     return arr / np.linalg.norm(arr, axis=axis, keepdims=True)
+
 
 def dict2arrs(adict):
     keys, values = zip(*adict.items())
