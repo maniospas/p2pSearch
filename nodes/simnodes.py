@@ -5,9 +5,6 @@ import numpy as np
 
 class HardSumEmbeddingNode(WalkerNode):
 
-    def __init__(self, name):
-        super().__init__(name)
-
     def get_personalization(self):
         return np.sum(doc.embedding for doc in self.docs.values())
 

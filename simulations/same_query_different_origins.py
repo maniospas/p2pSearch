@@ -33,7 +33,7 @@ def same_query_different_origins_simulation(graph_name, qid, gold_doc, n_docs, q
     # assert utils.search(simulation.nodes, que_embs[qid]).name == query_results[qid]
 
     print("Warming up")
-    simulation(epochs=200)
+    simulation.run_embeddings(epochs=200)
 
     for node, query in zip(simulation.nodes, queries):
         node.add_query(MessageQuery(query, ttl))
@@ -44,7 +44,7 @@ def same_query_different_origins_simulation(graph_name, qid, gold_doc, n_docs, q
         return n_messages > 0
 
     print("begin simulation")
-    time = simulation(epochs=50, monitor=queue_monitor)
+    time = simulation.run_queries(epochs=50, monitor=queue_monitor)
     print("Finished seearch at time", time)
 
     acc = calc_accuracy_per_ttl(queries)
@@ -56,7 +56,7 @@ graph_name = "fb"
 dataset_name = "glove"
 n_docs = 10
 ttl = 20
-n_iters = 1000
+n_iters = 10
 
 
 # load ir dataset
@@ -97,3 +97,4 @@ ax.plot(range(ttl), accs_q3, "b--")
 ax.grid()
 ax.set_xlabel("TTL")
 ax.set_ylabel("Accuracy")
+plt.show
