@@ -11,10 +11,15 @@ class Document:
 
 
 class Query:
-    def __init__(self, name, embedding):
+    def __init__(self, name, embedding, _gold_doc=None):
         self.name = name
         self.embedding = embedding
         self.messages = []
+        self._gold_doc = _gold_doc
+
+    def spawn(self, ttl):
+        qm = MessageQuery(self, ttl)
+        return qm
 
     def register(self, message):
         self.messages.append(message)
@@ -91,7 +96,8 @@ class MessageQuery:
         return self.hops < self.ttl
 
     def kill(self, at_node, reason=""):
-        print(f"Query {self.query.name} died at node {at_node.name} because {reason}")
+        pass
+        # print(f"Query {self.query.name} died at node {at_node.name} because {reason}")
          # TODO notify query
 
     def clone(self):
@@ -118,6 +124,7 @@ class MessageQuery:
     def check_now(self, docs):
         for doc in docs:
             score = np.sum(docs[doc].embedding * self.embedding)
+            # score = -np.linalg.norm(docs[doc].embedding - self.embedding)
             if score > self.candidate_doc_similarity:
                 self.candidate_doc_similarity = score
                 self.candidate_doc = doc

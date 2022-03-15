@@ -11,3 +11,8 @@ def generate_stub_queries(k):
 def generate_stub_message_queries(k, ttl=10):
     queries = generate_stub_queries(k)
     return queries, [MessageQuery(query, ttl) for query in queries]
+
+
+class StubNode:
+    def __init__(self, name):
+        pass

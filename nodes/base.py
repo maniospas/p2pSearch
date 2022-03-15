@@ -8,17 +8,34 @@ from collections import defaultdict
 
 class Node:
 
-    def __init__(self, name, ppr_a, init_personalization=lambda: 0):
+    ppr_a = 0.1 # default value
+
+    @classmethod
+    def set_ppr_a(cls, ppr_a):
+        cls.ppr_a = ppr_a
+
+    def __init__(self, name, emb_dim):
         self.name = name
-        self.ppr_a = ppr_a
         self.neighbors = dict()
-        self.personalization = init_personalization()
-        self.embedding = self.personalization
+        self.emb_dim = emb_dim
 
         self.docs = dict()
         self.query_queue = dict()
         self.seen_from = defaultdict(lambda: set())
         self.sent_to = defaultdict(lambda: set())
+
+        self.personalization = self.get_personalization()
+        self.embedding = self.personalization
+
+    # TODO: dangerous
+    def clear(self):
+        self.neighbors.clear()
+        self.docs.clear()
+        self.query_queue.clear()
+        self.seen_from.clear()
+        self.sent_to.clear()
+        self.personalization = self.get_personalization()
+        self.embedding = self.personalization
 
     def add_doc(self, doc: Document):
         self.docs[doc.name] = doc
@@ -59,17 +76,18 @@ class Node:
 
     @DeprecationWarning
     def update_embedding(self):
+        ppr_a = self.__class__.ppr_a
         embedding = sum([emb for emb in self.neighbors.values()])
-        self.embedding = self.ppr_a * self.personalization + (1-self.ppr_a) * embedding / len(self.neighbors)**0.5
+        self.embedding = ppr_a * self.personalization + (1-ppr_a) * embedding / len(self.neighbors)**0.5
 
     def receive_embedding(self, neighbor, neighbor_embedding):
-
+        ppr_a = self.__class__.ppr_a
         N = len(self.neighbors)
         if neighbor in self.neighbors:
-            self.embedding += (neighbor_embedding - self.neighbors[neighbor]) / N**0.5 * (1-self.ppr_a)
+            self.embedding += (neighbor_embedding - self.neighbors[neighbor]) / N**0.5 * (1-ppr_a)
         else:
-            self.embedding = ((self.embedding - self.ppr_a * self.personalization) * N**0.5
-                              + neighbor_embedding * (1-self.ppr_a)) / (N+1)**0.5 + self.ppr_a * self.personalization
+            self.embedding = ((self.embedding - ppr_a * self.personalization) * N**0.5
+                              + neighbor_embedding * (1-ppr_a)) / (N+1)**0.5 + ppr_a * self.personalization
         self.neighbors[neighbor] = neighbor_embedding
         # self.update_embedding()
 
@@ -115,3 +133,6 @@ class Node:
     @abstractmethod
     def get_personalization(self):
         pass
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.name})"

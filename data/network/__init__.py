@@ -4,9 +4,10 @@ import os
 import networkx as nx
 
 METADATA = {
-    "gnutella": {"url": "https://snap.stanford.edu/data/p2p-Gnutella31.txt.gz", "delimiter": "\t"},
+    "gnutella": {"url": "http://snap.stanford.edu/data/p2p-Gnutella08.txt.gz", "delimiter": "\t"},
     "fb": {"url": "https://snap.stanford.edu/data/facebook_combined.txt.gz", "delimiter": " "},
     "internet": {"url": "https://snap.stanford.edu/data/as20000102.txt.gz", "delimiter": "\t"},
+    "karate": {"delimiter": " "},
     "toy_erdos": {"n": 50, "p": 0.2},
     "toy_watts_strogatz": {"n": 50, "k" :3, "p": 0.2},
 }
@@ -63,9 +64,14 @@ def download(dataset, filepath):
 
 
 def get_edgelist_path(dataset):
-    network_dir = os.path.join(DATA_DIR, "network")
+    network_dir = os.path.join(DATA_DIR, "edgelists")
     if not os.path.exists(network_dir):
         os.mkdir(network_dir)
     return os.path.join(network_dir, f"{dataset}_edgelist.csv")
 
 
+def get_ppr_matrix_path(dataset, alpha, symmetric):
+    network_dir = os.path.join(DATA_DIR, "ppr_mats")
+    if not os.path.exists(network_dir):
+        os.mkdir(network_dir)
+    return os.path.join(network_dir, f"{dataset}_alpha{alpha}_{'symm' if symmetric else 'asymm'}.npy")

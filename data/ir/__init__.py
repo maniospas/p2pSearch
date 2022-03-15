@@ -38,6 +38,11 @@ def get_embeddings_path(dataset, type):
     return os.path.join(dset_path, TYPE2FILENAME_DICT[type]+"_embs.npz")
 
 
+def get_clusters_path(dataset, n_clusters):
+    dset_path = get_dataset_path(dataset)
+    return os.path.join(dset_path, "clusters", f"{n_clusters}_clusters.npy")
+
+
 def download(dataset):
 
     dset_path = get_dataset_path(dataset)

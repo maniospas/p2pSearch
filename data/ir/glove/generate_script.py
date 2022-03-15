@@ -15,7 +15,7 @@ def dict2arrs(adict):
 
 
 n_queries = 1000
-model_name = "glove-wiki-gigaword-50"
+model_name = "glove-wiki-gigaword-300"
 
 print("loading model")
 model = api.load(model_name)

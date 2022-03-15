@@ -1,15 +1,18 @@
+from multiprocessing import Pool
+import time
+import random
+import os
 
-class Thing:
+a = 1
 
+def f(x):
+    interval = random.randrange(1,5)
+    print(f"{os.getpid()} sleeping for {interval}")
+    time.sleep(interval)
+    print(f"{os.getpid()} just woke up")
+    return x*x
 
-    counter = 0
+with Pool(4) as pool:
+    pow10 = pool.map(f, range(10,20))
 
-    def __init__(self, name):
-        self.name = name
-        self.count = self.__class__.counter
-        self.__class__.counter += 1
-
-things = [Thing("test") for i in range(10)]
-
-for thing in things:
-    print(thing.count)
+print(pow10)

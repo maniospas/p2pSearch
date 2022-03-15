@@ -1,7 +1,13 @@
 import os
 import numpy as np
 import networkx as nx
+
+import utils
 from data import network, ir
+from utils import analytic_ppr
+from stubs import StubNode
+from importlib import import_module
+from subprocess import run
 
 
 def load_graph(node_init, dataset="fb"):
@@ -19,6 +25,52 @@ def load_graph(node_init, dataset="fb"):
             graph.add_edge(node_dict[nodes[0]], node_dict[nodes[1]])
             graph.add_edge(node_dict[nodes[1]], node_dict[nodes[0]])
     return graph
+
+
+def load_node2vec(dataset, as_dict=False, normalized=False, params=None):
+    params = params or dict()
+    dim = params.get("dim", 768)
+    l = params.get("l", 3)
+    p = params.get("p", 1)
+    q = params.get("q", 0.3)
+
+    basedir = os.path.join(os.path.dirname(__file__), "data", "node2vec")
+    emb_path = os.path.join(basedir, f"{dataset}_dim{dim}_l{l}_p{p}_q{q}.emb")
+    if not os.path.exists(emb_path):
+        edgelist_path = os.path.join(basedir, f"{dataset}.edgelist")
+        if not os.path.exists(edgelist_path):
+            raise Exception(f"no node2vec data for dataset {dataset}")
+
+        script_path = os.path.join(basedir, "node2vec")
+        args = f"{script_path} -i:{edgelist_path} -o:{emb_path} -l:{l} -d:{dim} -p:{p} -q:{q} -v".split()
+        run(args)
+
+    with open(emb_path, "r", encoding="utf8") as f:
+        f.readline()
+        ids = []
+        embs = []
+        for line in f:
+            tokens = line.rstrip().split()
+            ids.append(tokens[0])
+            emb = np.array([float(token) for token in tokens[1:]])
+            if normalized:
+                emb = utils.unitary(emb)
+            embs.append(emb)
+    if as_dict:
+        return {id_: emb for id_, emb in zip(ids, embs)}
+    else:
+        return ids, np.array(embs)
+
+
+def ppr_matrix(dataset, alpha, symmetric=True):
+    filepath = network.get_ppr_matrix_path(dataset, alpha, symmetric)
+    if os.path.exists(filepath):
+        return np.load(filepath)
+
+    graph = load_graph(StubNode, dataset)
+    ppr_matrix = utils.analytic_ppr(nx.adjacency_matrix(graph), alpha, symmetric)
+    np.save(filepath, ppr_matrix)
+    return ppr_matrix
 
 
 def load_query_results(dataset="glove"):
@@ -53,4 +105,21 @@ def load_texts(dataset="glove", type="docs"):
             idx, text = line.strip().split("\t")
             texts[idx] = text
     return texts
+
+
+def load_clusters(dataset, n_clusters):
+    filepath = ir.get_clusters_path(dataset, n_clusters)
+    if not os.path.exists(filepath):
+        store_clusters = getattr(import_module('data.ir.glove.create_clusters'), 'store_clusters')
+        store_clusters(n_clusters)
+    return np.load(filepath)
+
+
+def load_all(dataset):
+    query_results = load_query_results()
+    que_embs = load_embeddings(dataset=dataset, type="queries")
+    doc_embs = load_embeddings(dataset=dataset, type="docs")
+    other_doc_embs = load_embeddings(dataset=dataset, type="other_docs")
+    dim = len(next(iter(other_doc_embs.values())))
+    return dim, query_results, que_embs, doc_embs, other_doc_embs
 
