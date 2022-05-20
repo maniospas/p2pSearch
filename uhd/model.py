@@ -1,4 +1,4 @@
-from transformers import BertTokenizer, BertModel
+from transformers import BertTokenizer, BertModel, DistilBertTokenizer, DistilBertModel
 import torch
 
 
@@ -68,7 +68,7 @@ class WTA(torch.nn.Module):
     def __call__(self, inputs, sparse_dim=None):
         sparse_dim = sparse_dim or self.sparse_dim
         transformed = self.lin(inputs)
-        topk = torch.topk(transformed, k=sparse_dim, dim=1)
+        topk = torch.topk(transformed, k=sparse_dim, dim=inputs.ndim-1)
         sparse_topk = [SparseVector(indices.numpy(), values, self.lin.out_features)
                        for indices, values in zip(topk.indices.unbind(), topk.values.unbind())]
         return SparseVector.max_pool(sparse_topk)
@@ -78,8 +78,11 @@ class UHD(torch.nn.Module):
 
     def __init__(self, emb_dim, sparse_dim):
         super(UHD, self).__init__()
-        self.tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
-        self.model = BertModel.from_pretrained("bert-base-uncased")
+        # self.tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+        # self.model = BertModel.from_pretrained("bert-base-uncased")
+
+        self.tokenizer = DistilBertTokenizer.from_pretrained("distilbert-base-uncased")
+        self.model = DistilBertModel.from_pretrained("distilbert-base-uncased")
 
         self.model_dim = self._get_model_dim()
         self.emb_dim = emb_dim
@@ -88,20 +91,27 @@ class UHD(torch.nn.Module):
         self.wta = WTA(self.model_dim, emb_dim, sparse_dim)
 
     def _get_model_dim(self):
-        test_input = self.tokenizer("random text", return_tensors="pt")
+        test_input = self.tokenizer("random text", return_tensors="pt", truncation=True)
         test_output = self.model(**test_input).last_hidden_state.detach()
         return test_output.shape[-1]
 
     def __call__(self, text, sparse_dim=None):
-        tokens = self.tokenizer(text, return_tensors="pt")
+        tokens = self.tokenizer(text, return_tensors="pt", padding="longest", truncation=True)
         tokens_emb = self.model(**tokens).last_hidden_state.squeeze()
         return self.wta(tokens_emb, sparse_dim)
 
 
+class Scorer:
 
+    def __init__(self, emb_dim, sparse_dim):
+        self.emb_dim = emb_dim
+        self.sparse_dim = sparse_dim
+        self.uhd = UHD(emb_dim, sparse_dim)
 
-
-
+    def score(self, query, document):
+        qvec = self.uhd(query)
+        dvec = self.uhd(document)
+        return qvec @ dvec
 
 
 # indices = torch.tensor([1, 2, 3])
@@ -116,7 +126,6 @@ class UHD(torch.nn.Module):
 # wta = WTA(6, 100, 3)
 # inputs = torch.randint(0, 100, (4, 6), dtype=torch.float)
 # outputs = wta(inputs)
-
 
 # encoder = UHD(1000, 5)
 # text = "Hello, its me"
