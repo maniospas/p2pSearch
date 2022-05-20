@@ -36,7 +36,7 @@ def sim(graph_name, dataset_name, ppr_a, n_iters, ttl, n_docs, Q):
 
     print(f"{os.getpid()}: preparing" )
     dim, query_results, que_embs, doc_embs, other_doc_embs = load_all(dataset_name)
-    graph = load_graph(lambda name: HardSumEmbeddingNode(name, dim, True), graph_name)
+    graph = load_graph(lambda name: SoftSumEmbeddingNode(name, dim, True), graph_name)
     adj = nx.adjacency_matrix(graph)
     ppr_mat = loader.analytic_ppr(adj, ppr_a, True, graph_name)
     HardSumEmbeddingNode.set_ppr_a(ppr_a)
@@ -93,10 +93,10 @@ def big_sim():
     dataset_name = "glove"
     ttl = 50
     # ppr_a = 0.5
-    n_docs = 100
-    n_iters = 5000
+    n_docs = 1000
+    n_iters = 100
 
-    all_ppr_a = [0.1, 0.5, 0.9]
+    all_ppr_a = [0.5, 0.9]
     Q = multiprocessing.Queue()
     jobs = []
     for ppr_a in all_ppr_a:
@@ -125,10 +125,10 @@ def big_sim():
             f.write(" ".join([str(acc) for acc in accs])+"\n")
 
 
-big_sim()
+# big_sim()
 
-n_docs = 100
-n_iters = 5000
+n_docs = 1000
+n_iters = 100
 ttl=50
 dirpath = os.path.join(os.path.dirname(__file__), "output", f"{n_docs}docs_{n_iters}iters_{ttl}ttl")
 with open(dirpath, "r") as f:
@@ -142,7 +142,7 @@ with open(dirpath, "r") as f:
         line = f.readline().rstrip()
 
 fig, ax = plt.subplots(figsize=(6, 5))
-for alpha, marker in zip([0.1, 0.5, 0.9], ["+", "*", "o"]):
+for alpha, marker in zip([0.5, 0.9], ["+", "*", "o"]):
     hops, accs = alpha2hopaccs[alpha]
     ax.plot(hops, accs, "k-"+marker,label=rf"$\alpha = {alpha}$", ms=7, lw=1.0)
 ax.grid()
@@ -150,8 +150,8 @@ ax.set_xlabel("TTL (hops)", family="serif", size=16)
 ax.set_ylabel("Accuracy (%)", family="serif", size=16)
 ax.legend(prop={'family':"serif", 'size': 13})
 
-# from img import get_path
-# path = get_path(__file__, f"{'fb'}_{'glove'}_{n_docs}docs.pdf")
+from img import get_path
+path = get_path(__file__, f"{'fb'}_{'glove'}_{n_docs}docs.pdf")
 # plt.savefig(path)
 #
 #

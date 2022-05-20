@@ -120,12 +120,19 @@ class HardSumL2EmbeddingNode(WalkerNode):
 
 class SoftSumEmbeddingNode(WalkerNode):
 
+    def __init__(self, name, dim, remove_successful_queries=False):
+        self.remove_successful_queries = remove_successful_queries
+        super(SoftSumEmbeddingNode, self).__init__(name, dim)
+
     def get_personalization(self):
         return np.sum(doc.embedding for doc in self.docs.values())
 
     def get_next_hops(self, query):
         neighbors = list(self.neighbors)
         if len(neighbors) == 0:
+            return []
+
+        if self.remove_successful_queries and query.candidate_doc == query.query._gold_doc:
             return []
 
         filtered_neighbors = self.filter_seen_from(neighbors, query)
