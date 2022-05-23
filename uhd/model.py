@@ -1,3 +1,4 @@
+from pandas.conftest import narrow_series
 from transformers import BertTokenizer, BertModel, DistilBertTokenizer, DistilBertModel
 import torch
 
@@ -43,6 +44,7 @@ class SparseVector:
                 if idx not in pooled_value_dict or (idx in pooled_value_dict and val > pooled_value_dict[idx]):
                     pooled_value_dict[idx] = val
         indices, values = zip(*pooled_value_dict.items())
+
         return SparseVector(indices, values, vec.dim)
 
     def to_dense(self, as_type=list):
@@ -66,23 +68,23 @@ class WTA(torch.nn.Module):
         self.sparse_dim = sparse_dim
 
     # works with 3D
-    def __call__(self, inputs, sparse_dim=None, debug=True):
+    def __call__(self, inputs, sparse_dim=None):
+
         is_2d = inputs.ndim == 2
-        if is_2d:
-            inputs = inputs.unsqueeze(0)
+        inputs = inputs.unsqueeze(0) if is_2d else inputs
+
         sparse_dim = sparse_dim or self.sparse_dim
-        transformed = self.lin(inputs) if not debug else inputs
+        transformed = self.lin(inputs)
         topk = torch.topk(transformed, k=sparse_dim, dim=inputs.ndim-1)
         pooled = torch.full_like(transformed, -torch.inf)\
             .scatter_(dim=inputs.ndim-1, index=topk.indices, src=topk.values).max(dim=inputs.ndim-2).values
         sparse_vecs = []
         for one_pooled in pooled:
             inds = torch.nonzero(one_pooled > -torch.inf).squeeze()
-            sparse_vecs.append(SparseVector(indices=inds, values=one_pooled[inds], dim=self.lin.out_features))
-        if is_2d:
-            return sparse_vecs[0]
-        else:
-            return sparse_vecs
+            sparse_vecs.append(SparseVector(indices=inds.tolist(), values=one_pooled[inds], dim=self.lin.out_features))
+
+        sparse_vecs = sparse_vecs[0] if is_2d else sparse_vecs
+        return sparse_vecs
 
         # sparse_topk = [SparseVector(indices.numpy(), values, self.lin.out_features)
         #                for indices, values in zip(topk.indices.unbind(), topk.values.unbind())]
@@ -93,11 +95,11 @@ class UHD(torch.nn.Module):
 
     def __init__(self, emb_dim, sparse_dim):
         super(UHD, self).__init__()
-        # self.tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
-        # self.model = BertModel.from_pretrained("bert-base-uncased")
+        self.tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+        self.model = BertModel.from_pretrained("bert-base-uncased")
 
-        self.tokenizer = DistilBertTokenizer.from_pretrained("distilbert-base-uncased")
-        self.model = DistilBertModel.from_pretrained("distilbert-base-uncased")
+        # self.tokenizer = DistilBertTokenizer.from_pretrained("distilbert-base-uncased")
+        # self.model = DistilBertModel.from_pretrained("distilbert-base-uncased")
 
         self.model_dim = self._get_model_dim()
         self.emb_dim = emb_dim
@@ -110,10 +112,17 @@ class UHD(torch.nn.Module):
         test_output = self.model(**test_input).last_hidden_state.detach()
         return test_output.shape[-1]
 
-    def __call__(self, text, sparse_dim=None):
-        tokens = self.tokenizer(text, return_tensors="pt", padding="longest", truncation=True)
-        tokens_emb = self.model(**tokens).last_hidden_state.squeeze()
-        return self.wta(tokens_emb, sparse_dim)
+    def __call__(self, texts, sparse_dim=None):
+
+        is_single_text = isinstance(texts, str)
+        texts = [texts] if is_single_text else texts
+
+        tokens = self.tokenizer(texts, return_tensors="pt", padding="longest", truncation=True)
+        tokens_emb = self.model(**tokens).last_hidden_state
+
+        output = self.wta(tokens_emb, sparse_dim)
+        output = output[0] if is_single_text else output
+        return output
 
 
 class Scorer:
@@ -123,20 +132,34 @@ class Scorer:
         self.sparse_dim = sparse_dim
         self.uhd = UHD(emb_dim, sparse_dim)
 
-    def score(self, query, document):
+    def score_one(self, query, document):
         qvec = self.uhd(query)
         dvec = self.uhd(document)
         return qvec @ dvec
 
+    def score_pairs(self, queries, documents):
+        qvecs = self.uhd(queries)
+        dvecs = self.uhd(documents)
+        return torch.cat([(qvec @ dvec).unsqueeze(0) for qvec, dvec in zip(qvecs, dvecs)])
 
-# indices = torch.tensor([1, 2, 3])
-# values = torch.tensor([.6, .7, -.8])
-# x = SparseVector(indices.numpy(), values, 10)
-# indices = torch.tensor([1, 2, 5])
-# values = torch.tensor([.65, .71, -.83])
-# y = SparseVector(indices.numpy(), values, 10)
-# w = SparseVector.max_pool([x,y])
-# print(w)
+
+# from torchviz import make_dot
+#
+# input_emb_dim = 5
+# output_emb_dim = 10
+# sparse_dim = 3
+# n_sentences = 3
+# n_tokens = 5
+#
+# wta = WTA(input_emb_dim, output_emb_dim, sparse_dim)
+# x = torch.randn(n_sentences, n_tokens, input_emb_dim, requires_grad=True)
+# y = torch.randn(n_sentences, n_tokens, input_emb_dim, requires_grad=True)
+# rel = torch.randint(0, 2, (n_sentences,), dtype=torch.float)
+# score = torch.cat([(qvec @ dvec).unsqueeze(0) for qvec, dvec in zip(wta(x), wta(y))])
+# loss = torch.sum((score - rel)**2)
+#
+# make_dot(loss, dict(wta.named_parameters()))
+
 
 # wta = WTA(6, 100, 3)
 # # inputs = torch.randint(0, 100, (4, 4, 6), dtype=torch.float)
@@ -144,6 +167,10 @@ class Scorer:
 # outputs = wta(inputs, sparse_dim=2, debug=True)
 # print(outputs)
 # encoder = UHD(1000, 5)
-# text = "Hello, its me"
-# enc = encoder(text)
-# print(enc)
+
+
+# queries = ["Hello, its me", "hi"]
+# docs = ["Nikos", "feasible"]
+# scorer = Scorer(100, 20)
+#
+# preds = scorer.score_pairs(queries, docs)
