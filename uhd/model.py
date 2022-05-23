@@ -65,13 +65,28 @@ class WTA(torch.nn.Module):
         self.lin = torch.nn.Linear(input_dim, output_dim)
         self.sparse_dim = sparse_dim
 
-    def __call__(self, inputs, sparse_dim=None):
+    # works with 3D
+    def __call__(self, inputs, sparse_dim=None, debug=True):
+        is_2d = inputs.ndim == 2
+        if is_2d:
+            inputs = inputs.unsqueeze(0)
         sparse_dim = sparse_dim or self.sparse_dim
-        transformed = self.lin(inputs)
+        transformed = self.lin(inputs) if not debug else inputs
         topk = torch.topk(transformed, k=sparse_dim, dim=inputs.ndim-1)
-        sparse_topk = [SparseVector(indices.numpy(), values, self.lin.out_features)
-                       for indices, values in zip(topk.indices.unbind(), topk.values.unbind())]
-        return SparseVector.max_pool(sparse_topk)
+        pooled = torch.full_like(transformed, -torch.inf)\
+            .scatter_(dim=inputs.ndim-1, index=topk.indices, src=topk.values).max(dim=inputs.ndim-2).values
+        sparse_vecs = []
+        for one_pooled in pooled:
+            inds = torch.nonzero(one_pooled > -torch.inf).squeeze()
+            sparse_vecs.append(SparseVector(indices=inds, values=one_pooled[inds], dim=self.lin.out_features))
+        if is_2d:
+            return sparse_vecs[0]
+        else:
+            return sparse_vecs
+
+        # sparse_topk = [SparseVector(indices.numpy(), values, self.lin.out_features)
+        #                for indices, values in zip(topk.indices.unbind(), topk.values.unbind())]
+        # return SparseVector.max_pool(sparse_topk)
 
 
 class UHD(torch.nn.Module):
@@ -124,9 +139,10 @@ class Scorer:
 # print(w)
 
 # wta = WTA(6, 100, 3)
-# inputs = torch.randint(0, 100, (4, 6), dtype=torch.float)
-# outputs = wta(inputs)
-
+# # inputs = torch.randint(0, 100, (4, 4, 6), dtype=torch.float)
+# inputs = torch.tensor([[1,2,-1,-2], [-1,2,1,-3], [0,1,2,0]],dtype=torch.float, requires_grad=True)
+# outputs = wta(inputs, sparse_dim=2, debug=True)
+# print(outputs)
 # encoder = UHD(1000, 5)
 # text = "Hello, its me"
 # enc = encoder(text)
